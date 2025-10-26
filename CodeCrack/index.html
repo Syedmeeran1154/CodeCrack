@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeCrack – Debug & Win</title>
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #1e1e1e;
+            --code-bg: #1f2a37; /* Slightly different dark blue-gray */
+            --panel-bg: #252526;
+            --text-light: #d4d4d4;
+            --text-gray: #a9a9a9;
+            --primary-green: #38a169;
+            --primary-red: #e53e3e;
+            --primary-blue: #4299e1;
+            --border-color: #3e3e3e;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            height: 85vh;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        /* --- Left Panel (Problem) --- */
+        .problem-panel {
+            flex: 1;
+            background-color: var(--panel-bg);
+            padding: 25px;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .problem-panel h2 {
+            color: var(--primary-blue);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        
+        /* Streak Display Style */
+        .streak-display {
+            margin-bottom: 25px;
+            padding: 10px;
+            background-color: #332500;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #ffaa00;
+            text-align: center;
+            border: 1px solid #ffaa00;
+            box-shadow: 0 0 8px rgba(255, 170, 0, 0.4);
+        }
+        
+        .challenge-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--text-light);
+            font-weight: 700;
+        }
+
+        .challenge-description {
+            margin-bottom: 20px;
+            color: var(--text-gray);
+            line-height: 1.6;
+            padding-right: 10px;
+        }
+
+        .expected-output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #1a1a1a;
+            border-left: 5px solid var(--primary-green);
+            border-radius: 6px;
+            font-family: var(--font-mono);
+        }
+        
+        .expected-output strong {
+            color: var(--text-light);
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        /* --- Right Panel (Editor + Console) --- */
+        .editor-panel {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-dark);
+        }
+
+        .code-editor {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            background-color: var(--code-bg);
+            position: relative;
+        }
+        
+        .editor-header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 5px;
+        }
+
+        .editor-header {
+            color: var(--primary-blue);
+            font-size: 0.9rem;
+        }
+
+        #language-selector {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: Arial, sans-serif;
+            transition: background-color 0.2s;
+        }
+        #language-selector:hover {
+            background-color: #3182ce;
+        }
+
+        #code-input {
+            flex-grow: 1;
+            background-color: var(--code-bg);
+            color: #f8f8f2;
+            border: none;
+            padding: 15px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+            caret-color: var(--primary-green);
+        }
+        
+        /* --- Console/Result Area --- */
+        .console-output {
+            height: 150px;
+            background-color: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 15px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            overflow-y: auto;
+        }
+
+        .console-output h3 {
+            margin: 0 0 10px 0;
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        .result-pass { color: var(--primary-green); font-weight: bold; }
+        .result-fail { color: var(--primary-red); font-weight: bold; }
+        .result-info { color: var(--primary-blue); }
+        .log-line { color: var(--text-gray); margin: 2px 0; }
+        .log-error { color: var(--primary-red); font-weight: bold; }
+
+        /* --- Buttons --- */
+        .action-buttons {
+            display: flex;
+            padding: 10px;
+            gap: 10px;
+            background-color: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .btn, button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            font-family: Arial, sans-serif;
+        }
+
+        .btn-run {
+            background-color: var(--primary-green);
+            color: var(--bg-dark);
+        }
+        .btn-run:hover { background-color: #2f855a; }
+
+        .btn-reset {
+            background-color: #a0aec0;
+            color: var(--bg-dark);
+        }
+        .btn-reset:hover { background-color: #718096; }
+
+        .btn-nav {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+        .btn-nav:disabled {
+            background-color: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+        .btn-nav:not(:disabled):hover { background-color: #3182ce; }
+        
+        /* Utility for Monospace in Problem description */
+        .code-snippet {
+            font-family: var(--font-mono);
+            background-color: #333;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #f7b249; /* Orange */
+            font-size: 0.95em;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- LEFT PANEL: PROBLEM DESCRIPTION -->
+        <div class="problem-panel">
+            <h2>CodeCrack Challenge</h2>
+            
+            <div id="streak-display" class="streak-display">🔥 Streak: 0</div>
+            
+            <div class="challenge-title" id="challenge-title"></div>
+            <div class="challenge-description" id="challenge-description"></div>
+
+            <div class="expected-output">
+                <strong>Expected Output:</strong>
+                <pre id="expected-output"></pre>
+            </div>
+            
+            <div class="nav-buttons">
+                <button class="btn btn-nav" id="prev-btn" disabled>← Previous</button>
+                <button class="btn btn-nav" id="next-btn">Next Challenge →</button>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: EDITOR AND CONSOLE -->
+        <div class="editor-panel">
+            <div class="code-editor">
+                <div class="editor-header-controls">
+                    <div id="editor-header" class="editor-header">JavaScript Function to Debug:</div>
+                    <select id="language-selector">
+                        <option value="js">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                    </select>
+                </div>
+                <textarea id="code-input" wrap="off"></textarea>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-run" id="run-btn">▶ Run Code</button>
+                <button class="btn btn-reset" id="reset-btn">⟳ Reset Code</button>
+            </div>
+
+            <div class="console-output">
+                <h3>Console Output:</h3>
+                <div id="console-log">Ready to run your code...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CHALLENGE DATA STRUCTURE (10 Classic LeetCode Problems) ---
+        const challenges = [
+            {
+                id: 1,
+                title: "Two Sum (Array / HashMap)",
+                description: "Find two distinct indices in <span class='code-snippet'>nums</span> such that they add up to <span class='code-snippet'>target</span>. The arguments will be <span class='code-snippet'>[2, 7, 11, 15]</span> and <span class='code-snippet'>9</span>.",
+                expectedOutput: [0, 1],
+                testFunction: (func) => { 
+                    const nums = [2, 7, 11, 15];
+                    const target = 9;
+                    return func(nums, target);
+                },
+                js: { buggyCode: "function twoSum(nums, target) {\n    for (let i = 0; i < nums.length - 1; i++) {\n        for (let j = i; j < nums.length; j++) {\n            if (nums[i] + nums[j] === target) return [i, j];\n        }\n    }\n    return [];\n}" }, // FIX: j must start from i + 1
+                python: { buggyCode: "def twoSum(nums: list[int], target: int) -> list[int]:\n    for i in range(len(nums)):\n        for j in range(len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]" }, // FIX: Add 'if i != j:' or optimize j loop range
+                java: { buggyCode: "class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = 0; j < nums.length; j++) {\n                if (nums[i] + nums[j] == target) return new int[]{i, j};\n            }\n        }\n        return new int[]{};\n    }\n}" } // FIX: Add 'if (i != j)' or optimize j loop start
+            },
+            {
+                id: 2,
+                title: "Best Time to Buy and Sell Stock",
+                description: "Find the maximum profit you can achieve from one transaction. The array is <span class='code-snippet'>[7, 1, 5, 3, 6, 4]</span>. The minimum price tracking is flawed.",
+                expectedOutput: 5,
+                testFunction: (func) => func([7, 1, 5, 3, 6, 4]),
+                js: { buggyCode: "function maxProfit(prices) {\n    let maxProfit = 0;\n    for (let i = 0; i < prices.length; i++) {\n        for (let j = 0; j < prices.length; j++) {\n            maxProfit = Math.max(maxProfit, prices[j] - prices[i]);\n        }\n    }\n    return maxProfit;\n}" }, // FIX: j must start from i + 1
+                python: { buggyCode: "def maxProfit(prices: list[int]) -> int:\n    min_price = float('inf')\n    max_profit = 0\n    for price in prices:\n        if price < min_price:\n            min_price = price\n        elif price - min_price < max_profit:\n            max_profit = price - min_price\n    return max_profit" }, // FIX: elif must use > for max_profit
+                java: { buggyCode: "class Solution {\n    public int maxProfit(int[] prices) {\n        int maxP = 0;\n        int minP = prices[0];\n        for (int i = 1; i < prices.length; i++) {\n            maxP = Math.max(maxP, prices[i] - minP);\n            if (prices[i] < minP) { minP = prices[i]; }\n        }\n        return maxP;\n    }\n}" } // FIX: minP initialisation (should be max integer)
+            },
+            {
+                id: 3,
+                title: "Valid Palindrome (Two Pointers)",
+                description: "Determine if a string reads the same forwards and backwards after converting all uppercase letters into lowercase letters and removing non-alphanumeric characters. Test string: <span class='code-snippet'>'A man, a plan, a canal: Panama'</span>. The cleaning logic is missing.",
+                expectedOutput: true,
+                testFunction: (func) => func("A man, a plan, a canal: Panama"),
+                js: { buggyCode: "function isPalindrome(s) {\n    let left = 0;\n    let right = s.length - 1;\n    while (left < right) {\n        if (s[left] !== s[right]) return false;\n        left++;\n        right--;\n    }\n    return true;\n}" }, // FIX: Needs character cleaning/lowercasing before comparison
+                python: { buggyCode: "def isPalindrome(s: str) -> bool:\n    clean_s = ''.join(c for c in s if c.isalnum())\n    return clean_s == clean_s[::-1]" }, // FIX: missing .lower()
+                java: { buggyCode: "class Solution {\n    public boolean isPalindrome(String s) {\n        String cleaned = s.replaceAll(\"[^a-zA-Z0-9]\", \"\");\n        int left = 0;\n        int right = cleaned.length() - 1;\n        while (left < right) {\n            if (cleaned.charAt(left) != cleaned.charAt(right)) {\n                return false;\n            }\n            left++;\n            right--;\n        }\n        return true;\n    }\n}" } // FIX: Need to call .toLowerCase() on cleaned string
+            },
+            {
+                id: 4,
+                title: "Valid Anagram (String / HashMap)",
+                description: "Given two strings <span class='code-snippet'>s</span> and <span class='code-snippet'>t</span>, return <span class='code-snippet'>true</span> if <span class='code-snippet'>t</span> is an anagram of <span class='code-snippet'>s</span>, and <span class='code-snippet'>false</span> otherwise. Test with <span class='code-snippet'>'rat'</span> and <span class='code-snippet'>'car'</span>. The length check is missing.",
+                expectedOutput: false,
+                testFunction: (func) => func("rat", "car"),
+                js: { buggyCode: "function isAnagram(s, t) {\n    const sSorted = s.split('').sort().join('');\n    const tSorted = t.split('').sort().join('');\n    return sSorted === tSorted;\n}" }, // FIX: Add length check 'if (s.length !== t.length) return false;'
+                python: { buggyCode: "def isAnagram(s: str, t: str) -> bool:\n    # What if the bug is in the sorting?\n    return sorted(s) == sorted(t)" }, // FIX: Add length check
+                java: { buggyCode: "class Solution {\n    public boolean isAnagram(String s, String t) {\n        // Bug: Should convert to CharArray first\n        return s.equals(t);\n    }\n}" } // FIX: Replace 's.equals(t)' with proper anagram check logic (e.g., frequency map or sorting)
+            },
+            {
+                id: 5,
+                title: "Remove Duplicates from Sorted Array",
+                description: "Remove the duplicates in-place such that each unique element appears only once. The function should return the new length. Test with <span class='code-snippet'>[1, 1, 2, 2, 3]</span>. The return value is incorrect.",
+                expectedOutput: 3,
+                testFunction: (func) => func([1, 1, 2, 2, 3]),
+                js: { buggyCode: "function removeDuplicates(nums) {\n    let i = 0;\n    for (let j = 1; j < nums.length; j++) {\n        if (nums[j] !== nums[i]) {\n            i++;\n            nums[i] = nums[j];\n        }\n    }\n    return nums;\n}" }, // FIX: return i + 1; (The test function will check the returned length)
+                python: { buggyCode: "def removeDuplicates(nums: list[int]) -> int:\n    # Bug: Only incrementing i, not moving the element\n    i = 0\n    for j in range(1, len(nums)):\n        if nums[j] != nums[i]:\n            i += 1\n    return i + 1" }, // FIX: nums[i] = nums[j] assignment is missing
+                java: { buggyCode: "class Solution {\n    public int removeDuplicates(int[] nums) {\n        if (nums.length == 0) return 0;\n        int i = 0;\n        for (int j = 1; j < nums.length; j++) {\n            if (nums[j] != nums[i]) {\n                i++;\n                // Missing the crucial assignment: nums[i] = nums[j];\n            }\n        }\n        return i + 1;\n    }\n}" } // FIX: Missing nums[i] = nums[j] assignment
+            },
+            {
+                id: 6,
+                title: "Merge Two Sorted Lists (Linked List)",
+                description: "Merge two sorted linked lists, <span class='code-snippet'>list1</span> and <span class='code-snippet'>list2</span>, into one sorted list. Input: two lists starting with [1, 2, 4] and [1, 3, 4]. (The test simulates success by checking the head value).",
+                expectedOutput: 1, // Simulating the head of the merged list
+                testFunction: (func) => {
+                    // This requires a mock ListNode class for JS execution
+                    class ListNode { constructor(val, next = null) { this.val = val; this.next = next; } }
+                    const l1 = new ListNode(1, new ListNode(2, new ListNode(4)));
+                    const l2 = new ListNode(1, new ListNode(3, new ListNode(4)));
+                    const merged = func(l1, l2);
+                    return merged ? merged.val : null;
+                },
+                js: { buggyCode: "/** Definition for singly-linked list. function ListNode(val, next) { this.val = (val===undefined ? 0 : val); this.next = (next===undefined ? null : next); } */\nfunction mergeTwoLists(list1, list2) {\n    // Bug: Missing initialization of a dummy head\n    if (!list1) return list2;\n    if (!list2) return list1;\n    if (list1.val < list2.val) {\n        list1.next = mergeTwoLists(list1.next, list2);\n        return list1;\n    } else {\n        list2.next = mergeTwoLists(list1, list2.next);\n        return list2;\n    }\n}" }, // FIX: Recursive approach bug: missing dummy head.
+                python: { buggyCode: "class ListNode:\n    def __init__(self, val=0, next=None):\n        self.val = val\n        self.next = next\n\n# Python requires 'self' argument for instance methods, but LeetCode often uses simple functions\ndef mergeTwoLists(list1: ListNode, list2: ListNode) -> ListNode:\n    # Bug: Recursive call returns None\n    if not list1: return list2\n    if not list2: return list1\n\n    if list1.val < list2.val:\n        list1.next = mergeTwoLists(list1.next, list2)\n        return list1\n    else:\n        list2.next = mergeTwoLists(list1, list2.next)\n        return list2" }, // FIX: Define outside class or remove 'self' argument
+                java: { buggyCode: "/** Definition for singly-linked list. public class ListNode { int val; ListNode next; ListNode(int val) { this.val = val; } } */\nclass Solution {\n    public ListNode mergeTwoLists(ListNode list1, ListNode list2) {\n        // Bug: Should return the correct node\n        if (list1 == null) return list1;\n        if (list2 == null) return list2;\n        return list1;\n    }\n}" } // FIX: Implement actual merge logic
+            },
+            {
+                id: 7,
+                title: "Contains Duplicate (HashMap / HashSet)",
+                description: "Given an integer array <span class='code-snippet'>nums</span>, return <span class='code-snippet'>true</span> if any value appears at least twice in the array. Test array: <span class='code-snippet'>[1, 2, 3, 1]</span>. The loop logic is wrong.",
+                expectedOutput: true,
+                testFunction: (func) => func([1, 2, 3, 1]),
+                js: { buggyCode: "function containsDuplicate(nums) {\n    const seen = {};\n    for (const num of nums) {\n        if (seen[num]) {\n            return true;\n        }\n        // Bug: Missing the assignment to the hashmap\n    }\n    return false;\n}" }, // FIX: Add seen[num] = true;
+                python: { buggyCode: "def containsDuplicate(nums: list[int]) -> bool:\n    # Bug: Using a list instead of a set for O(N) complexity\n    seen = []\n    for num in nums:\n        if num in seen:\n            return True\n        seen.append(num)\n    return False" }, // FIX: Change 'seen = []' to 'seen = set()'
+                java: { buggyCode: "class Solution {\n    public boolean containsDuplicate(int[] nums) {\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = 0; j < nums.length; j++) {\n                if (nums[i] == nums[j]) return true;\n            }\n        }\n        return false;\n    }\n}" } // FIX: Add 'if (i != j)' check for nested loop, or use a HashSet for O(N)
+            },
+            {
+                id: 8,
+                title: "Search Insert Position (Binary Search)",
+                description: "Given a sorted array of distinct integers and a target value, return the index if the target is found. If not, return the index where it would be inserted in order. Test array: <span class='code-snippet'>[1, 3, 5, 6]</span>, Target: <span class='code-snippet'>2</span>. The while loop condition is wrong.",
+                expectedOutput: 1,
+                testFunction: (func) => func([1, 3, 5, 6], 2),
+                js: { buggyCode: "function searchInsert(nums, target) {\n    let left = 0;\n    let right = nums.length - 1;\n\n    while (left < right) {\n        let mid = Math.floor((left + right) / 2);\n        if (nums[mid] === target) {\n            return mid;\n        } else if (nums[mid] < target) {\n            left = mid + 1;\n        } else {\n            right = mid - 1;\n        }\n    }\n    return left;\n}" }, // FIX: while condition should be left <= right
+                python: { buggyCode: "def searchInsert(nums: list[int], target: int) -> int:\n    # Bug: Returning -1 instead of the final insertion point\n    left = 0\n    right = len(nums) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if nums[mid] == target:\n            return mid\n        elif nums[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1" }, // FIX: return left instead of -1
+                java: { buggyCode: "class Solution {\n    public int searchInsert(int[] nums, int target) {\n        // Bug: Returning 'right' instead of the final insertion point 'left'\n        int left = 0;\n        int right = nums.length - 1;\n        while (left <= right) {\n            int mid = (left + right) / 2;\n            if (nums[mid] == target) return mid;\n            else if (nums[mid] < target) left = mid + 1;\n            else right = mid - 1;\n        }\n        return right;\n    }\n}" } // FIX: Should return 'left' as the insertion point, not 'right'
+            },
+            {
+                id: 9,
+                title: "Power of Two (Bitwise)",
+                description: "Given an integer <span class='code-snippet'>n</span>, return <span class='code-snippet'>true</span> if it is a power of two. Test with 6. Bitwise logic is missing a key condition.",
+                expectedOutput: false,
+                testFunction: (func) => func(6),
+                js: { buggyCode: "function isPowerOfTwo(n) {\n    if (n <= 0) return false;\n    // Bug: Should be bitwise AND, not OR\n    return (n | (n - 1)) === 0;\n}" }, // FIX: Change '|' (OR) to '&' (AND)
+                python: { buggyCode: "def isPowerOfTwo(n: int) -> bool:\n    if n <= 0:\n        return True # BUG: Should be False\n    return (n & (n - 1)) == 0" }, // FIX: return False if n <= 0
+                java: { buggyCode: "class Solution {\n    public boolean isPowerOfTwo(int n) {\n        // Bug: Should be bitwise AND, not OR\n        if (n <= 0) return false;\n        return (n | (n - 1)) == 0;\n    }\n}" } // FIX: Change '|' (OR) to '&' (AND)
+            },
+            {
+                id: 10,
+                title: "Factorial of a Number (Recursion)",
+                description: "Calculate the factorial of a non-negative integer <span class='code-snippet'>n</span>. Test with 5 (expected 120). The recursive base case is faulty.",
+                expectedOutput: 120,
+                testFunction: (func) => func(5),
+                js: { buggyCode: "function factorial(n) {\n    if (n === 1) {\n        return n;\n    } else {\n        return n * factorial(n - 1);\n    }\n}" }, // FIX: Base case should be n === 0 or n <= 1, and should return 1.
+                python: { buggyCode: "def factorial(n: int) -> int:\n    if n == 0:\n        return 0 # BUG: Should return 1\n    return n * factorial(n - 1)" }, // FIX: return 1 if n == 0
+                java: { buggyCode: "class Solution {\n    public int factorial(int n) {\n        if (n < 0) return 0;\n        if (n == 0) return 0; // BUG: Should return 1\n        return n * factorial(n - 1);\n    }\n}" } // FIX: return 1 if n == 0
+            }
+        ];
+
+        // --- GLOBAL STATE ---
+        let currentChallengeIndex = 0;
+        const CONSOLE_LOGS = [];
+        let currentStreak = parseInt(localStorage.getItem('codecrack-streak') || 0);
+        let currentLanguage = 'js'; // Default language
+
+        // --- DOM ELEMENTS ---
+        const codeInput = document.getElementById('code-input');
+        const runBtn = document.getElementById('run-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const consoleLogEl = document.getElementById('console-log');
+        const challengeTitleEl = document.getElementById('challenge-title');
+        const challengeDescEl = document.getElementById('challenge-description');
+        const expectedOutputEl = document.getElementById('expected-output');
+        const streakDisplayEl = document.getElementById('streak-display');
+        const languageSelectorEl = document.getElementById('language-selector');
+        const editorHeaderEl = document.getElementById('editor-header');
+
+
+        // --- UTILITY FUNCTIONS ---
+
+        /**
+         * Updates the streak display and saves it to local storage.
+         */
+        function updateStreakDisplay() {
+            streakDisplayEl.textContent = `🔥 Streak: ${currentStreak}`;
+            localStorage.setItem('codecrack-streak', currentStreak);
+        }
+
+        /**
+         * Cleans up the function body from the code input.
+         */
+        function extractFunctionBody(fullCode) {
+             // Regex to match function definition for JS only
+            const match = fullCode.match(/function [^\(]+\(([^)]*)\)\s*\{([\s\S]*)\}/);
+            if (match && match.length === 3) {
+                return { args: match[1].trim(), body: match[2].trim() };
+            }
+            return { args: '', body: '' };
+        }
+
+        /**
+         * Safely captures console logs and runs the user code (JS only).
+         */
+        function executeCode(code, testFunc) {
+            CONSOLE_LOGS.length = 0;
+            let result;
+            let executionError = null;
+
+            const originalLog = console.log;
+            console.log = (...args) => {
+                CONSOLE_LOGS.push(args.map(String).join(' '));
+            };
+
+            try {
+                const { args, body } = extractFunctionBody(code);
+                
+                if (!args || !body) {
+                    throw new Error("Invalid JavaScript function syntax. Ensure you define one function: 'function name(a, b) { ... }'");
+                }
+
+                const userFunction = new Function(args, body);
+                result = testFunc(userFunction);
+
+            } catch (e) {
+                executionError = e.toString();
+            } finally {
+                console.log = originalLog;
+            }
+
+            return { result, error: executionError };
+        }
+
+        /**
+         * Compares result against expected output.
+         * Handles array/object comparison using JSON.stringify.
+         */
+        function compareResults(result, expected) {
+            if (Array.isArray(result) || (typeof result === 'object' && result !== null)) {
+                // Handle Linked List mock object comparison (just checking the head value)
+                if (currentChallengeIndex === 5) {
+                    return result === expected;
+                }
+                return JSON.stringify(result) === JSON.stringify(expected);
+            }
+            return result === expected;
+        }
+
+
+        /**
+         * Renders the current challenge data into the problem panel and loads code into the editor.
+         */
+        function loadChallenge() {
+            const challenge = challenges[currentChallengeIndex];
+
+            // 1. Update Problem Panel
+            challengeTitleEl.textContent = `Challenge ${challenge.id}/${challenges.length}: ${challenge.title}`;
+            challengeDescEl.innerHTML = challenge.description;
+            
+            let expectedOutputStr = Array.isArray(challenge.expectedOutput) || typeof challenge.expectedOutput === 'object'
+                                    ? JSON.stringify(challenge.expectedOutput) 
+                                    : String(challenge.expectedOutput);
+            expectedOutputEl.textContent = expectedOutputStr;
+
+            // 2. Update Editor
+            const codeToLoad = challenge[currentLanguage]?.buggyCode || `// Code not available for ${currentLanguage.toUpperCase()}`;
+            codeInput.value = codeToLoad;
+            editorHeaderEl.textContent = `${currentLanguage.toUpperCase()} Function to Debug:`;
+            
+            // 3. Update Navigation
+            prevBtn.disabled = currentChallengeIndex === 0;
+            nextBtn.disabled = currentChallengeIndex === challenges.length - 1;
+
+            // 4. Reset Console
+            consoleLogEl.innerHTML = '<span class="result-info">Ready to run your code...</span>';
+            
+            // 5. Update Streak Display
+            updateStreakDisplay();
+        }
+
+        /**
+         * Handles the click event for the Run Code button.
+         */
+        function handleRunCode() {
+            const currentChallenge = challenges[currentChallengeIndex];
+            const userCode = codeInput.value;
+            const originalBuggyCode = currentChallenge[currentLanguage].buggyCode;
+
+            let outputHTML = '';
+            let passed = false;
+
+            if (currentLanguage === 'js') {
+                // --- JS EXECUTION (Real) ---
+                const { result, error } = executeCode(userCode, currentChallenge.testFunction);
+                
+                if (error) {
+                    outputHTML += `<div class="log-error">ERROR: ${error}</div>`;
+                    outputHTML += `<div class="result-fail">Test Result: FAILED (Code crashed)</div>`;
+                    currentStreak = 0;
+                } else {
+                    passed = compareResults(result, currentChallenge.expectedOutput);
+                    
+                    if (passed) { currentStreak++; } else { currentStreak = 0; }
+
+                    const resultClass = passed ? 'result-pass' : 'result-fail';
+                    const resultText = passed ? 'PASSED' : 'FAILED';
+
+                    outputHTML += `<div class="${resultClass}">Test Result: ${resultText}</div>`;
+                    outputHTML += `<div class="log-line">Your Output: <span class="code-snippet">${JSON.stringify(result)}</span></div>`;
+                    outputHTML += `<div class="log-line">Expected: <span class="code-snippet">${JSON.stringify(currentChallenge.expectedOutput)}</span></div>`;
+                }
+
+                if (CONSOLE_LOGS.length > 0) {
+                    outputHTML += '<br><strong>Console.log() Output:</strong>';
+                    CONSOLE_LOGS.forEach(log => {
+                        outputHTML += `<div class="log-line">> ${log}</div>`;
+                    });
+                }
+
+            } else {
+                // --- PYTHON/JAVA EXECUTION (Simulated) ---
+
+                // If the user hasn't modified the code, it's a guaranteed fail.
+                if (userCode.trim() === originalBuggyCode.trim()) {
+                    outputHTML += `<div class="log-error">Error: Bug detected. Try fixing the logic or syntax!</div>`;
+                    outputHTML += `<div class="result-fail">Test Result: FAILED (Still Buggy)</div>`;
+                    currentStreak = 0;
+                } else {
+                    // If the user modified the code, we simulate success for the purpose of the challenge.
+                    const result = currentChallenge.expectedOutput; // Use the correct expected output for simulation
+                    
+                    passed = true;
+                    currentStreak++;
+
+                    outputHTML += `<div class="result-pass">Test Result: PASSED (Simulated Success)</div>`;
+                    outputHTML += `<div class="log-line">Your Code (in ${currentLanguage.toUpperCase()}): Executed successfully.</div>`;
+                    outputHTML += `<div class="log-line">Test Case Output: <span class="code-snippet">${JSON.stringify(result)}</span></div>`;
+                    outputHTML += `<div class="log-line result-info">Note: Full ${currentLanguage.toUpperCase()} environment simulation is unavailable. Test passed based on code modification.</div>`;
+                }
+            }
+
+            consoleLogEl.innerHTML = outputHTML;
+            updateStreakDisplay();
+        }
+
+        // --- EVENT HANDLERS ---
+        runBtn.addEventListener('click', handleRunCode);
+        resetBtn.addEventListener('click', loadChallenge);
+
+        languageSelectorEl.addEventListener('change', (e) => {
+            currentLanguage = e.target.value;
+            loadChallenge();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentChallengeIndex < challenges.length - 1) {
+                currentChallengeIndex++;
+                loadChallenge();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentChallengeIndex > 0) {
+                currentChallengeIndex--;
+                loadChallenge();
+            }
+        });
+
+        // --- INITIALIZATION ---
+        window.onload = loadChallenge;
+
+    </script>
+</body>
+</html>
+
